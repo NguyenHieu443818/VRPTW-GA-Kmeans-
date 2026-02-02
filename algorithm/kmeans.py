@@ -46,81 +46,80 @@ class Kmeans():
             if self.has_converged(old_v, v):
                 break
         return u, v, step + 1
-    
-    def k_means_sorted(self, X: np.ndarray,FirstPoint: np.ndarray, seed: int = 42,) -> tuple:
 
-        u, v, step = self.k_means(X=X,seed=seed)
-        v = self.sort_cluster_by_len(V=v,FirstPoint=FirstPoint)
+    def k_means_sorted(self, X: np.ndarray, FirstPoint: np.ndarray, seed: int = 42,) -> tuple:
+
+        u, v, step = self.k_means(X=X, seed=seed)
+        v = self.sort_cluster_by_len(V=v, FirstPoint=FirstPoint)
         u = self.update_membership_matrix(X, v)
-        
+
         return u, v, step + 1
-    
-    def k_means_lib_sorted(self, X: np.ndarray,FirstPoint: np.ndarray, seed: int = 42,) -> tuple:
+
+    def k_means_lib_sorted(self, X: np.ndarray, FirstPoint: np.ndarray, seed: int = 42,) -> tuple:
         from sklearn.cluster import KMeans
         kmeans = KMeans(n_clusters=self.n_cluster, random_state=seed).fit(X)
-        centroid  = kmeans.cluster_centers_
-        v = self.sort_cluster_by_distance(V=centroid,FirstPoint=FirstPoint)
+        centroid = kmeans.cluster_centers_
+        v = self.sort_cluster_by_distance(V=centroid, FirstPoint=FirstPoint)
         u = self.update_membership_matrix(X, v)
-        
+
         return u, v, 1
 
     def data_to_cluster(self, U: np.ndarray):
-        return [np.argwhere([U == i]).T[1,] +1 for i in range(self.n_cluster)]
-    
+        # return [(np.where(U == i)[0] + 1).astype(np.int64)  for i in range(self.n_cluster)]
+        return [(np.where(U == i)[0] + 1).tolist() for i in range(self.n_cluster)]
+
     # def sort_cluster(self,V: np.ndarray,FirstPoint: np.ndarray): # Sắp xếp lại danh sách các tâm cụm tăng dần từ điểm dữ liệu đầu vào đến các cụm
     #     distances = np.linalg.norm(FirstPoint - V, axis=1)
     #     sorted_indices = np.argsort(distances)
     #     # sorted_V = V[sorted_indices]
     #     sorted_V = np.zeros((len(V),2))
 
-    #     for idx,val in enumerate(sorted_indices): 
+    #     for idx,val in enumerate(sorted_indices):
     #         sorted_V[idx] = V[val]
 
-
     #     return sorted_V
-    
-    def sort_cluster_by_distance(self,V: np.ndarray, FirstPoint: np.ndarray) -> np.ndarray:
+                    
+    def sort_cluster_by_distance(self, V: np.ndarray, FirstPoint: np.ndarray) -> np.ndarray:
         # Danh sách để lưu trữ các điểm đã sắp xếp
         sorted_V = []
-        
+
         # Danh sách các chỉ số đã được sử dụng để theo dõi điểm đã sắp xếp
         used_indices = set()
-        
+
         # Bắt đầu từ FirstPoint
         current_point = FirstPoint
-        
+
         for _ in range(len(V)):
             # Tính khoảng cách từ current_point đến tất cả các điểm trong V
             distances = np.linalg.norm(current_point - V, axis=1)
-            
+
             # Chỉ lấy các chỉ số mà chưa được sử dụng
             valid_indices = [i for i in range(len(V)) if i not in used_indices]
-            
+
             # Tìm chỉ số của điểm gần nhất trong các chỉ số hợp lệ
             nearest_index = valid_indices[np.argmin(distances[valid_indices])]
-            
+
             # Thêm điểm gần nhất vào danh sách đã sắp xếp
             sorted_V.append(V[nearest_index])
-            
+
             # Cập nhật current_point cho lần lặp tiếp theo
             current_point = V[nearest_index]
-            
+
             # Đánh dấu chỉ số đã sử dụng
             used_indices.add(nearest_index)
 
         return np.array(sorted_V)
 
-    def sort_cluster_by_len(self,V: np.ndarray, FirstPoint: np.ndarray) -> np.ndarray:
+    def sort_cluster_by_len(self, V: np.ndarray, FirstPoint: np.ndarray) -> np.ndarray:
         V_len = [len(v) for v in V]
         sorted_indices = np.argsort(V_len)
         # sorted_V = V[sorted_indices]
-        sorted_V = np.zeros((len(V),2))
+        sorted_V = np.zeros((len(V), 2))
 
-        for idx,val in enumerate(sorted_indices): 
+        for idx, val in enumerate(sorted_indices):
             sorted_V[idx] = V[val]
 
         return sorted_V
-
 
     def elbow_k_means(self, X: np.ndarray, C_scope):
         import matplotlib.pyplot as plt

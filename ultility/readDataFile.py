@@ -1,62 +1,39 @@
-import pandas as pd
 import numpy as np
-from collections import namedtuple 
 import os
-# Warehouse = namedtuple('Warehouse',['xy_coord','dueDate'])
-Customer = namedtuple('Customer',['id','xy_coord','demand','readyTime','dueTime','serviceTime'])
 
-def load_csv_dataset(url=None,name_of_id=None, number_of_customer: int = None):
-  # folder = file_name[0:2]
-  # url = "Python\\Genetic_Algorithm\\data\\csv\\" + folder +"\\"+ name_of_id+ ".csv"
+C_ID = 0
+C_X = 1
+C_Y = 2
+C_DEMAND = 3
+C_READY_TIME = 4
+C_DUE_TIME = 5
+C_SERVICE_TIME = 6
 
-  path = os.path.join(url, name_of_id)
-  f = pd.read_csv(path)
-  print("dataset: ",name_of_id[0:4])
-  print("Number of customer: ",number_of_customer)
-  # data_kmeans = np.delete(np.array(f[['XCOORD.','YCOORD.']]),0,0)   
-  data = np.array(f[['XCOORD.','YCOORD.']])
-  # data = np.array(f[['XCOORD.','YCOORD.','DUE DATE']])
 
-  demands = np.array(f['DEMAND'])
-  ready_time = np.array(f['READY TIME'])
-  due_date =  np.array(f['DUE DATE'])
-  service_time =  np.array(f['SERVICE TIME'])
+def load_txt_dataset(url=None, name_of_id=None):
+    """
+    Tải dữ liệu từ file dataset Solomon, tối ưu hoàn toàn bằng NumPy.
+    
+    Hàm này đọc thông tin về xe và khách hàng, trả về dữ liệu dưới dạng
+    các mảng NumPy hiệu năng cao.
+    
+    Returns:
+        tuple: Một tuple chứa:
+            - vehicle_capacity (int): Tải trọng của xe.
+            - customer_data (np.ndarray): Mảng 2D chứa TOÀN BỘ dữ liệu của khách hàng.
+            - cord_data (np.ndarray): Mảng 2D chỉ chứa tọa độ (X, Y) của khách hàng,
+                                      sẵn sàng cho các thuật toán clustering như K-Means.
+    """
 
-  customers = []
-  for i in range(number_of_customer+1):
-    # customers.append(Customer(i-1,data[i],demands[i],ready_time[i],due_date[i],service_time[i]))
-    customers.append(Customer(i,data[i],demands[i],ready_time[i],due_date[i],service_time[i]))
-  # warehouse = Warehouse(data[0],due_date[0])
-  
-  # return data,customers,warehouse
-  return data[:number_of_customer+1],customers
+    path = os.path.join(url, name_of_id)
+    with open(path, 'r') as file:
+        lines = file.readlines()
 
-# print(load_csv_dataset(url="data/csv/R1/",name_of_id="R102.csv",number_of_customer=25))
+    num_vehicles, vehicle_capacity = map(int, lines[4].strip().split())
 
-def load_txt_dataset(url=None,name_of_id=None):
-  # folder = file_name[0:2]
-  # url = "Python\\Genetic_Algorithm\\data\\csv\\" + folder +"\\"+ name_of_id+ ".csv"
+    customers = np.loadtxt(path, skiprows=9, usecols=(0, 1, 2, 3, 4, 5, 6), dtype=np.int64)
+    cord_data = customers[:, C_X:C_Y+1]
 
-  path = os.path.join(url, name_of_id)
-  with open(path, 'r') as file:
-    lines = file.readlines()
-  customers = []
-  cord_data = []
-  for idx,line in enumerate(lines[9:]):  # Skip the header line
-      data = line.strip().split()
-      xcoord = np.int64(data[1])
-      ycoord = np.int64(data[2])
-      demand = np.int64(data[3])
-      ready_time = np.int64(data[4])
-      due_date = np.int64(data[5])
-      service_time = np.int64(data[6])
-
-      cord_data.append([xcoord,ycoord])
-      customers.append(Customer(idx,np.array([xcoord,ycoord]), demand, ready_time, due_date, service_time))
-
-  
-  # return data,customers,warehouse
-  return np.array(cord_data),customers
+    return vehicle_capacity, cord_data, customers
 
 # print(load_txt_dataset(url="data/txt/100/R1/",name_of_id="R101.txt"))
-
