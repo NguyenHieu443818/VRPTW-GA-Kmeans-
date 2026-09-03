@@ -1,21 +1,11 @@
 import numpy as np
-from ultility.readDataFile import load_txt_dataset
 from algorithm.GeneticAlgorithm import GA, Individual
 from algorithm.VariableNeighborhoodSearchAlgorithm import VNS
-from algorithm.kmeans import Kmeans
+from ultility.vrptw_evaluator import evaluate_route, C_DUE_TIME, C_READY_TIME
 import math
 import random
-from ultility.utilities import round_float, write_excel_file, distance_cdist, create_graph
-import os
+from ultility.utilities import round_float
 import time
-
-C_ID = 0
-C_X = 1
-C_Y = 2
-C_DEMAND = 3
-C_READY_TIME = 4
-C_DUE_TIME = 5
-C_SERVICE_TIME = 6
 
 class GA_VNS(GA, VNS):
     def __init__(self, individual: int = 4500, generation: int = 100, crossover_rate: float = 0.8, mutation_rate: float = 0.15, vehicle_capacity: float = 200, conserve_rate: float = 0.1, M: float = 50, customers: list = None, graph_data: np.ndarray = None, list_n_l: list = None, beta_0: int = 0, beta_1: int = 0):
@@ -26,11 +16,13 @@ class GA_VNS(GA, VNS):
 
     # Hàm kiểm tra xem chuỗi gen mới có tốt hơn chuỗi gen cũ
     def is_better(self, new_gene: list, gene: list):
-        fitness_gene, distance_gene = GA.cal_fitness_individualV2(individual=np.array(gene, dtype=np.int64), customers=self.customers,
-                                                      graph_data=self.graph_data, vehicle_capacity=self._vehicle_capacity, M=self._M)
-
-        fitness_new_gene, distance_new_gene = GA.cal_fitness_individualV2(individual=np.array(new_gene, dtype=np.int64), customers=self.customers,
-                                                          graph_data=self.graph_data, vehicle_capacity=self._vehicle_capacity, M=self._M, fitness_to_branch_bound=fitness_gene)
+        fitness_gene, _ = evaluate_route(
+            np.array(gene, dtype=np.int64),
+            self.customers, self.graph_data, self._vehicle_capacity, self._M)
+        fitness_new_gene, _ = evaluate_route(
+            np.array(new_gene, dtype=np.int64),
+            self.customers, self.graph_data, self._vehicle_capacity, self._M,
+            fitness_gene)  # branch-bound
         return fitness_new_gene < fitness_gene
 
     # Tạm thời chưa tối ưu code -> đề xuất sửa thành thuật toán nhánh cận tăng tốc độ tính toán
@@ -51,8 +43,11 @@ class GA_VNS(GA, VNS):
             fitness_min = float('inf')  # sửa thành 'inf' vì đang tìm min
 
             for idx, cus in enumerate(copy_cluster):
-                test = new_individual + [cus]  # tạo bản copy tạm để đánh giá
-                fitness_part, _ = GA.cal_fitness_individualV2(individual=np.array(test, dtype=np.int64), customers=self.customers, graph_data=self.graph_data, vehicle_capacity=self._vehicle_capacity, M=self._M, fitness_to_branch_bound=fitness_min)
+                test = new_individual + [cus]
+                fitness_part, _ = evaluate_route(
+                    np.array(test, dtype=np.int64),
+                    self.customers, self.graph_data,
+                    self._vehicle_capacity, self._M, fitness_min)
                     
                 if fitness_part < fitness_min:  # cập nhật nếu tốt hơn
                     fitness_min = fitness_part
@@ -102,10 +97,10 @@ class GA_VNS(GA, VNS):
                 gene_child_3 = self.mutation(gene_child_3)
                 gene_child_4 = self.mutation(gene_child_4)
 
-            self.population.append(Individual(customer_list=gene_child_1))
-            self.population.append(Individual(customer_list=gene_child_2))
-            self.population.append(Individual(customer_list=gene_child_3))
-            self.population.append(Individual(customer_list=gene_child_4))
+            self.population.append(Individual(customer_list=np.array(gene_child_1, dtype=np.int64)))
+            self.population.append(Individual(customer_list=np.array(gene_child_2, dtype=np.int64)))
+            self.population.append(Individual(customer_list=np.array(gene_child_3, dtype=np.int64)))
+            self.population.append(Individual(customer_list=np.array(gene_child_4, dtype=np.int64)))
 
             if (len(self.population) > self._individual):
                 del self.population[self._individual:]
@@ -118,8 +113,8 @@ class GA_VNS(GA, VNS):
         
         # self.population.append(Individual(customer_list= self.generate_first_individual(clusters)))
             
-        _start_time = time.time()
         for cluster in clusters:
+            _start_time = time.time()
             self.initial_population(cluster)
             self.cal_fitness_population()
             for _ in range(self._generation):
@@ -129,7 +124,8 @@ class GA_VNS(GA, VNS):
                 self.cal_fitness_population()
                 
                 self.population.sort(key=lambda x: x.fitness)
-                self.population[0].customer_list = VNS.fit(self, gene=self.population[0].customer_list)
+                self.population[0].customer_list = np.array(
+                    VNS.fit(self, gene=self.population[0].customer_list.tolist()), dtype=np.int64)
                     
             self.process_time += round_float(time.time() - _start_time)
             self.cal_fitness_population()

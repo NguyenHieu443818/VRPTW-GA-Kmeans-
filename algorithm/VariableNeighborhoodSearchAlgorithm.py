@@ -20,53 +20,64 @@ class VNS():
         self.S_l = math.floor(self.max_n/6)
 
     def insertion_operator(self, num_ran_point: int, gene: list):
-        ran_val = random.sample(gene, num_ran_point)
+        if len(gene) < num_ran_point or num_ran_point <= 0:
+            return gene
 
+        ran_val = random.sample(gene, num_ran_point)
         gene = [x for x in gene if x not in ran_val]
 
-        ran_pos = random.sample(range(len(gene)), num_ran_point)
+        ran_pos = random.sample(range(len(gene) + 1), num_ran_point)
         for index, pos in enumerate(ran_pos):
             gene.insert(pos, ran_val[index])
 
         return gene
 
     def pairwise_exchange_operator(self, num_ran_pair_point: int, gene: list):
+        if len(gene) < 2 * num_ran_pair_point or num_ran_pair_point <= 0:
+            return gene
+
         indices_to_swap = random.sample(
-            range(len(gene)), 2*num_ran_pair_point)
+            range(len(gene)), 2 * num_ran_pair_point)
 
         for i in range(0, 2 * num_ran_pair_point, 2):
             idx1 = indices_to_swap[i]
-            idx2 = indices_to_swap[i+1]
+            idx2 = indices_to_swap[i + 1]
             gene[idx1], gene[idx2] = gene[idx2], gene[idx1]
 
         return gene
 
     def fragment_part_reverse_operator(self, len_gen: int, gene: list):
-        start_pos = random.randint(0, len(gene) - len_gen + 1)
+        if len(gene) < len_gen or len_gen <= 1:
+            return gene
 
+        start_pos = random.randint(0, len(gene) - len_gen)
         end_pos = start_pos + len_gen
 
-        gene[start_pos: end_pos] = gene[start_pos: end_pos][::-1]
-
+        gene[start_pos:end_pos] = gene[start_pos:end_pos][::-1]
         return gene
 
     def fragment_two_part_inversion_operator(self, len_gen: int, gene: list):
-        start_pos_1, start_pos_2 = sorted(random.sample(range(len(gene) - len_gen + 1), 2))
-            
-        while start_pos_2-start_pos_1 < len_gen:
-            start_pos_1, start_pos_2 = sorted(random.sample(range(len(gene) - len_gen + 1), 2))
-               
+        # Cần ít nhất 2 * len_gen phần tử để tìm được 2 đoạn không chồng lấn
+        if len(gene) < 2 * len_gen or len_gen <= 0:
+            return gene
+
+        max_start = len(gene) - 2 * len_gen
+        start_pos_1 = random.randint(0, max_start)
+        start_pos_2 = random.randint(start_pos_1 + len_gen, len(gene) - len_gen)
 
         end_pos_1, end_pos_2 = start_pos_1 + len_gen, start_pos_2 + len_gen
-
-        gene[start_pos_1: end_pos_1], gene[start_pos_2:
-                                           end_pos_2] = gene[start_pos_2: end_pos_2], gene[start_pos_1: end_pos_1]
+        gene[start_pos_1:end_pos_1], gene[start_pos_2:end_pos_2] = (
+            gene[start_pos_2:end_pos_2],
+            gene[start_pos_1:end_pos_1],
+        )
 
         return gene
 
     def random_exchange_operator(self, num_ran_point: int, gene: list):
-        ran_indices = random.sample(range(len(gene)), num_ran_point)
+        if len(gene) < num_ran_point or num_ran_point <= 1:
+            return gene
 
+        ran_indices = random.sample(range(len(gene)), num_ran_point)
         values = [gene[indice] for indice in ran_indices]
 
         random.shuffle(ran_indices)
@@ -77,6 +88,8 @@ class VNS():
         return gene
 
     def fragment_translation_operator(self, len_gen: int, gene: list):
+        if len(gene) <= len_gen or len_gen <= 0:
+            return gene
 
         start_pos = random.randint(0, len(gene) - len_gen)
         end_pos = start_pos + len_gen
@@ -87,7 +100,6 @@ class VNS():
         gene = gene[:start_pos] + gene[end_pos:]
 
         ran_insert_point = random.randint(0, len(gene))
-
         gene = gene[:ran_insert_point] + part_to_move + gene[ran_insert_point:]
 
         return gene
